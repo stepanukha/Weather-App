@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Clothing Advisor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f5f7fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            margin-top: 30px;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #4a6fa5;
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 15px 20px;
+            font-weight: bold;
+        }
+        .form-control, .btn {
+            border-radius: 8px;
+        }
+        .btn-primary {
+            background-color: #4a6fa5;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #3a5a80;
+        }
+        #loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        #results {
+            display: none;
+        }
+        .weather-icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+        .recommendation-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Weather Clothing Advisor</h1>
+        
+        <div class="card">
+            <div class="card-header">
+                Enter Location
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="latitude" class="form-label">Latitude</label>
+                    <input type="text" class="form-control" id="latitude" placeholder="39.9523 (Philadelphia)" value="39.9523">
+                </div>
+                <div class="mb-3">
+                    <label for="longitude" class="form-label">Longitude</label>
+                    <input type="text" class="form-control" id="longitude" placeholder="-75.1638 (Philadelphia)" value="-75.1638">
+                </div>
+                <button id="getRecommendation" class="btn btn-primary">Get Clothing Recommendation</button>
+            </div>
+        </div>
+        
+        <div id="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Fetching weather data and recommendations...</p>
+        </div>
+        
+        <div id="results">
+            <div class="card">
+                <div class="card-header">
+                    Weather Summary
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <div class="weather-icon">🌡️</div>
+                            <div id="temperature"></div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="weather-icon">💧</div>
+                            <div id="precipitation"></div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="weather-icon">💨</div>
+                            <div id="wind"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    Clothing Recommendation
+                </div>
+                <div class="card-body">
+                    <div class="recommendation-item">
+                        <strong>Top:</strong> <span id="top"></span>
+                    </div>
+                    <div class="recommendation-item">
+                        <strong>Bottom:</strong> <span id="bottom"></span>
+                    </div>
+                    <div id="outer-layer-container" class="recommendation-item">
+                        <strong>Outer Layer:</strong> <span id="outer-layer"></span>
+                    </div>
+                    <div id="accessories-container" class="recommendation-item">
+                        <strong>Accessories:</strong> <span id="accessories"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('getRecommendation').addEventListener('click', function() {
+            // Show loading indicator
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            
+            // Get coordinates
+            const latitude = document.getElementById('latitude').value || 39.9523;
+            const longitude = document.getElementById('longitude').value || -75.1638;
+            
+            // Make API request
+            fetch('/get_recommendation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    latitude: parseFloat(latitude),
+                    longitude: parseFloat(longitude)
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading indicator
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.success) {
+                    // Display results
+                    document.getElementById('results').style.display = 'block';
+                    
+                    // Update weather summary
+                    document.getElementById('temperature').textContent = `${data.weather.avg_temp}°F`;
+                    document.getElementById('precipitation').textContent = `${data.weather.max_precip} inches`;
+                    document.getElementById('wind').textContent = `${data.weather.max_wind} mph`;
+                    
+                    // Update clothing recommendations
+                    document.getElementById('top').textContent = data.recommendation.top;
+                    document.getElementById('bottom').textContent = data.recommendation.bottom;
+                    
+                    // Handle optional fields
+                    if (data.recommendation.outer_layer) {
+                        document.getElementById('outer-layer-container').style.display = 'block';
+                        document.getElementById('outer-layer').textContent = data.recommendation.outer_layer;
+                    } else {
+                        document.getElementById('outer-layer-container').style.display = 'none';
+                    }
+                    
+                    if (data.recommendation.accessories && data.recommendation.accessories.length > 0) {
+                        document.getElementById('accessories-container').style.display = 'block';
+                        document.getElementById('accessories').textContent = data.recommendation.accessories.join(', ');
+                    } else {
+                        document.getElementById('accessories-container').style.display = 'none';
+                    }
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                alert('Error: ' + error);
+            });
+        });
+    </script>
+</body>
+</html> 
