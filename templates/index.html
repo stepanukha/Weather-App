@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Clothing Advisor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f5f7fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            margin-top: 30px;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #4a6fa5;
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 15px 20px;
+            font-weight: bold;
+        }
+        .form-control, .btn {
+            border-radius: 8px;
+        }
+        .btn-primary {
+            background-color: #4a6fa5;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #3a5a80;
+        }
+        #loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        #results {
+            display: none;
+        }
+        .weather-icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+        .recommendation-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        .location-tabs {
+            margin-bottom: 20px;
+        }
+        .tab-content {
+            padding-top: 20px;
+        }
+        #location-name {
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .error-message {
+            color: #dc3545;
+            margin-top: 10px;
+            display: none;
+        }
+        .popular-zips {
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+        .popular-zip-btn {
+            margin: 2px;
+            font-size: 0.8rem;
+            padding: 2px 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Weather Clothing Advisor</h1>
+        
+        <div class="card">
+            <div class="card-header">
+                Enter Location
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs location-tabs" id="locationTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="zip-tab" data-bs-toggle="tab" data-bs-target="#zip-tab-pane" type="button" role="tab" aria-controls="zip-tab-pane" aria-selected="true">Zip Code</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="coordinates-tab" data-bs-toggle="tab" data-bs-target="#coordinates-tab-pane" type="button" role="tab" aria-controls="coordinates-tab-pane" aria-selected="false">Coordinates</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="locationTabsContent">
+                    <div class="tab-pane fade show active" id="zip-tab-pane" role="tabpanel" aria-labelledby="zip-tab" tabindex="0">
+                        <div class="mb-3">
+                            <label for="zipCode" class="form-label">Zip/Postal Code</label>
+                            <input type="text" class="form-control" id="zipCode" placeholder="Enter any US zip code (e.g., 19104)">
+                            <div class="form-text">Enter any valid US zip code - we'll look it up automatically!</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="countryCode" class="form-label">Country Code</label>
+                            <select class="form-select" id="countryCode">
+                                <option value="US" selected>United States (US)</option>
+                                <option value="CA">Canada (CA)</option>
+                                <option value="GB">United Kingdom (GB)</option>
+                                <option value="DE">Germany (DE)</option>
+                                <option value="FR">France (FR)</option>
+                                <option value="JP">Japan (JP)</option>
+                                <option value="AU">Australia (AU)</option>
+                            </select>
+                        </div>
+                        <button id="lookupZip" class="btn btn-primary">Lookup Zip Code</button>
+                        
+                        <div class="popular-zips">
+                            <p>Popular US Zip Codes:</p>
+                            <div class="mb-2">
+                                <button class="btn btn-outline-secondary btn-sm popular-zip-btn" data-zip="10001" data-country="US">10001 (New York)</button>
+                                <button class="btn btn-outline-secondary btn-sm popular-zip-btn" data-zip="90210" data-country="US">90210 (Beverly Hills)</button>
+                                <button class="btn btn-outline-secondary btn-sm popular-zip-btn" data-zip="60601" data-country="US">60601 (Chicago)</button>
+                                <button class="btn btn-outline-secondary btn-sm popular-zip-btn" data-zip="33101" data-country="US">33101 (Miami)</button>
+                                <button class="btn btn-outline-secondary btn-sm popular-zip-btn" data-zip="98101" data-country="US">98101 (Seattle)</button>
+                                <button class="btn btn-outline-secondary btn-sm popular-zip-btn" data-zip="19104" data-country="US">19104 (Philadelphia)</button>
+                                <button class="btn btn-outline-secondary btn-sm popular-zip-btn" data-zip="19002" data-country="US">19002 (Ambler, PA)</button>
+                            </div>
+                            
+                            <div class="form-text mt-2">
+                                <small>You can enter any US zip code! We use the National Weather Service API to look up locations.</small>
+                            </div>
+                        </div>
+                        
+                        <div id="zip-error" class="error-message"></div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="coordinates-tab-pane" role="tabpanel" aria-labelledby="coordinates-tab" tabindex="0">
+                        <div class="mb-3">
+                            <label for="latitude" class="form-label">Latitude</label>
+                            <input type="text" class="form-control" id="latitude" placeholder="39.9523 (Philadelphia)" value="39.9523">
+                        </div>
+                        <div class="mb-3">
+                            <label for="longitude" class="form-label">Longitude</label>
+                            <input type="text" class="form-control" id="longitude" placeholder="-75.1638 (Philadelphia)" value="-75.1638">
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="location-name" class="mt-3"></div>
+                
+                <button id="getRecommendation" class="btn btn-primary mt-3">Get Clothing Recommendation</button>
+            </div>
+        </div>
+        
+        <div id="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Fetching weather data and recommendations...</p>
+        </div>
+        
+        <div id="results">
+            <div class="card">
+                <div class="card-header">
+                    Weather Summary
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <div class="weather-icon">🌡️</div>
+                            <div id="temperature"></div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="weather-icon">💧</div>
+                            <div id="precipitation"></div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="weather-icon">💨</div>
+                            <div id="wind"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    Clothing Recommendation
+                </div>
+                <div class="card-body">
+                    <div class="recommendation-item">
+                        <strong>Top:</strong> <span id="top"></span>
+                    </div>
+                    <div class="recommendation-item">
+                        <strong>Bottom:</strong> <span id="bottom"></span>
+                    </div>
+                    <div id="outer-layer-container" class="recommendation-item">
+                        <strong>Outer Layer:</strong> <span id="outer-layer"></span>
+                    </div>
+                    <div id="accessories-container" class="recommendation-item">
+                        <strong>Accessories:</strong> <span id="accessories"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables to store coordinates
+        let currentLatitude = 39.9523;
+        let currentLongitude = -75.1638;
+        let locationName = "Philadelphia, US";
+        
+        // Set up popular zip code buttons
+        document.querySelectorAll('.popular-zip-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const zipCode = this.getAttribute('data-zip');
+                const countryCode = this.getAttribute('data-country');
+                
+                document.getElementById('zipCode').value = zipCode;
+                document.getElementById('countryCode').value = countryCode;
+                
+                // Trigger the lookup
+                lookupZipCode(zipCode, countryCode);
+            });
+        });
+        
+        // Function to lookup zip code
+        function lookupZipCode(zipCode, countryCode) {
+            if (!zipCode) {
+                showError('Please enter a zip/postal code');
+                return;
+            }
+            
+            // Clear previous error
+            hideError();
+            
+            // Show loading indicator
+            document.getElementById('loading').style.display = 'block';
+            
+            // Make API request to lookup zip code
+            fetch('/lookup_zip', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    zip_code: zipCode,
+                    country_code: countryCode
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading indicator
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.success) {
+                    // Store coordinates
+                    currentLatitude = data.latitude;
+                    currentLongitude = data.longitude;
+                    
+                    // Display location name
+                    locationName = data.name + (data.country ? ', ' + data.country : '');
+                    document.getElementById('location-name').textContent = 'Location: ' + locationName;
+                    document.getElementById('location-name').style.display = 'block';
+                    
+                    // Update coordinate fields
+                    document.getElementById('latitude').value = data.latitude;
+                    document.getElementById('longitude').value = data.longitude;
+                    
+                    // Get recommendation automatically
+                    getWeatherRecommendation();
+                } else {
+                    showError(data.error || 'Error looking up zip code');
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                showError('Network error: ' + error);
+            });
+        }
+        
+        // Function to show error message
+        function showError(message) {
+            const errorElement = document.getElementById('zip-error');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+        
+        // Function to hide error message
+        function hideError() {
+            document.getElementById('zip-error').style.display = 'none';
+        }
+        
+        // Function to get weather recommendation
+        function getWeatherRecommendation() {
+            // Show loading indicator
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            
+            // Make API request
+            fetch('/get_recommendation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    latitude: parseFloat(currentLatitude),
+                    longitude: parseFloat(currentLongitude)
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading indicator
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.success) {
+                    // Display results
+                    document.getElementById('results').style.display = 'block';
+                    
+                    // Update weather summary
+                    document.getElementById('temperature').textContent = `${data.weather.avg_temp.toFixed(1)}°F`;
+                    document.getElementById('precipitation').textContent = `${data.weather.max_precip.toFixed(2)} inches`;
+                    document.getElementById('wind').textContent = `${data.weather.max_wind.toFixed(1)} mph`;
+                    
+                    // Update clothing recommendations
+                    document.getElementById('top').textContent = data.recommendation.top;
+                    document.getElementById('bottom').textContent = data.recommendation.bottom;
+                    
+                    // Handle optional fields
+                    if (data.recommendation.outer_layer) {
+                        document.getElementById('outer-layer-container').style.display = 'block';
+                        document.getElementById('outer-layer').textContent = data.recommendation.outer_layer;
+                    } else {
+                        document.getElementById('outer-layer-container').style.display = 'none';
+                    }
+                    
+                    if (data.recommendation.accessories && data.recommendation.accessories.length > 0) {
+                        document.getElementById('accessories-container').style.display = 'block';
+                        document.getElementById('accessories').textContent = data.recommendation.accessories.join(', ');
+                    } else {
+                        document.getElementById('accessories-container').style.display = 'none';
+                    }
+                } else {
+                    showError('Error getting recommendation: ' + data.error);
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                showError('Network error: ' + error);
+            });
+        }
+        
+        // Zip code lookup button event
+        document.getElementById('lookupZip').addEventListener('click', function() {
+            const zipCode = document.getElementById('zipCode').value;
+            const countryCode = document.getElementById('countryCode').value;
+            lookupZipCode(zipCode, countryCode);
+        });
+        
+        // Enter key in zip code field
+        document.getElementById('zipCode').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const zipCode = document.getElementById('zipCode').value;
+                const countryCode = document.getElementById('countryCode').value;
+                lookupZipCode(zipCode, countryCode);
+            }
+        });
+        
+        // Get recommendation button event
+        document.getElementById('getRecommendation').addEventListener('click', function() {
+            // Get coordinates (either from zip lookup or manual entry)
+            if (document.getElementById('coordinates-tab').classList.contains('active')) {
+                currentLatitude = document.getElementById('latitude').value || 39.9523;
+                currentLongitude = document.getElementById('longitude').value || -75.1638;
+            }
+            
+            getWeatherRecommendation();
+        });
+    </script>
+</body>
+</html> 

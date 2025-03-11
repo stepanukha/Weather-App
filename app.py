@@ -8,6 +8,21 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
+@app.route('/lookup_zip', methods=['POST'])
+def lookup_zip():
+    data = request.get_json()
+    zip_code = data.get('zip_code', '')
+    country_code = data.get('country_code', 'US')
+    
+    if not zip_code:
+        return jsonify({
+            'success': False,
+            'error': 'No zip code provided'
+        })
+    
+    result = WeatherAPI.get_coordinates_from_zip(zip_code, country_code)
+    return jsonify(result)
+
 @app.route('/get_recommendation', methods=['POST'])
 def get_recommendation():
     data = request.get_json()
@@ -19,9 +34,9 @@ def get_recommendation():
         weather_data = WeatherAPI.get_weather_data(latitude, longitude)
         recommendation = WeatherAPI.get_clothing_recommendation(weather_data)
         
-        # Convert NumPy values to Python native types
+        # Convert NumPy values to Python native types and ensure proper rounding
         weather_summary = {
-            'avg_temp': float(round(weather_data['temperature'].mean(), 1)),
+            'avg_temp': float(round(weather_data['temperature'].mean(), 1)),  # Round to 1 decimal place
             'max_precip': float(round(max(weather_data['precipitation']), 2)),
             'max_wind': float(round(max(weather_data['windspeed']), 1))
         }
